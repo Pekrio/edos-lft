@@ -70,12 +70,12 @@ class EmuEmuWireless:
         time.sleep(10)
 
         self.enb.run(f"tail -f /dev/null | python3 {self.enb.defaultSingleUEPath} > /srsRAN/build/gnuradio.log 2>&1 &")
-        time.sleep(3)
-        self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
         time.sleep(10)
+        self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
+        time.sleep(15)
 
         self.ue.start('--rf.device_name=zmq --rf.device_args="tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=11.52e6"')
-        time.sleep(3)
+        time.sleep(5)
         self.ue.setHost(EMU_EMU_WIRELESS_UE_IP_ADDR)
         self.epc.setHost(EMU_EMU_WIRELESS_EPC_IP_ADDR)
 

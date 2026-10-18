@@ -269,7 +269,7 @@ Certifique-se de estar no diretório raiz do repositório (`edos-lft`), conceda 
 
 ```bash
 chmod +x dependencies.sh
-./dependencies.sh
+sudo ./dependencies.sh
 ```
 
 ---

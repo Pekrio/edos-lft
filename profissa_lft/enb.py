@@ -25,12 +25,12 @@ class EnB(Perfsonar):
         self.defaultMultiUEPath = self.buildDir + '/multiUE.py'
         self.defaultSingleUEPath = self.buildDir + '/singleUE.py'
 
-    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran-perfsonar-uhd4', dockerCommand = '', dns='8.8.8.8', runCommand='') -> None:
+    def instantiate(self, dockerImage='alexandremitsurukaihara/lft:srsran', dockerCommand = '', dns='8.8.8.8', runCommand='') -> None:
         super().instantiate(dockerImage=dockerImage, dockerCommand=dockerCommand, dns=dns, runCommand=runCommand)
         self.config = self.readConfigFile(self.defaultEnBConfigPath)
 
     def start(self, transmitterIp="*", transmitterPort=2000, receiverIp="localhost", receiverPort=2001) -> None:
-        super().run(f"{self.buildDir}/srsenb/src/srsenb --rf.device_name=zmq --rf.device_args=\'fail_on_disconnect=true,tx_port=tcp://{transmitterIp}:{transmitterPort},rx_port=tcp://{receiverIp}:{receiverPort},id=enb,base_srate=11.52e6\' > enb.log")
+        super().run(f"{self.buildDir}/srsenb/src/srsenb /etc/srsran/enb.conf --rf.device_name=zmq --rf.device_args=\'fail_on_disconnect=true,tx_port=tcp://{transmitterIp}:{transmitterPort},rx_port=tcp://{receiverIp}:{receiverPort},id=enb,base_srate=11.52e6\' > enb.log")
 
     def stop(self) -> None:
         super().run("pkill -f -9 srsenb")
@@ -102,3 +102,11 @@ class EnB(Perfsonar):
         self.config[ENB_SECTION][GTP_BIND_ADDR] = ip
         self.config[ENB_SECTION][S1C_BIND_ADDR] = ip
         self.saveConfig(self.config, self.defaultEnBConfigPath)
+
+    def setRicAddress(self, ricIP: str, ricPort: int = 36421, enbIP: str = "10.0.0.3") -> None:
+      """Ajusta o IP/Porta do Near-RT RIC no arquivo de configuracao do eNB no
+      bloco [e2_agent].
+      """
+     # self.run(f"sed -i '/^\\[e2_agent\\]/a enable = true\\nric_ip = {ricIP}\\nric_port = {ricPort}' /etc/srsran/enb.conf")
+
+      self.run(f"sed -i '/^\\[e2_agent\\]/a enable = true\\nric_ip = {ricIP}\\nric_port = {ricPort}\\nric_bind_ip = {enbIP}\\nric_bind_port = 36425' /etc/srsran/enb.conf")

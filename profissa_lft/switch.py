@@ -17,12 +17,9 @@
 import logging
 import subprocess
 from .node import Node
-from .exceptions import NodeInstantiationFailed
 
 
 class Switch(Node): 
-    kind = "switch"
-
     # Brief: Instantiate a switch class, where it can be defined to capture flow data of each interface added
     # Params:
     # Return:
@@ -46,12 +43,6 @@ class Switch(Node):
         mount = ''
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         super().instantiate(dockerCommand=f"docker run -d --network=none --privileged {mount} --name={self.getNodeName()} {image}")
-        import time
-        for _ in range(30):
-            res = subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl show", shell=True, capture_output=True)
-            if res.returncode == 0:
-                break
-            time.sleep(0.5)
         try:
             # Create bridge and set it up
             subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl add-br {self.getNodeName()}", shell=True)
@@ -82,12 +73,12 @@ class Switch(Node):
     #   String peerName: Name of the interface to connect to the switch
     # Return:
     #   None
-    def __createPort(self, nodeName, peerInterfaceName) -> None:
+    def __createPort(self, nodeName, peerName) -> None:
         try:
-            subprocess.run(f"docker exec {nodeName} ovs-vsctl add-port {nodeName} {peerInterfaceName}", shell=True)
+            subprocess.run(f"docker exec {nodeName} ovs-vsctl add-port {nodeName} {peerName}", shell=True)
         except Exception as ex:
-            logging.error(f"Error while creating port {peerInterfaceName} in switch {nodeName}: {str(ex)}")
-            raise Exception(f"Error while creating port {peerInterfaceName} in switch {nodeName}: {str(ex)}")
+            logging.error(f"Error while creating port {peerName} in switch {nodeName}: {str(ex)}")
+            raise Exception(f"Error while creating port {peerName} in switch {nodeName}: {str(ex)}")
 
     # Brief: Set Ip to an interface (the ip must be set only after connecting it to a container)
     # Params:
@@ -101,9 +92,9 @@ class Switch(Node):
         self._Node__setIp(ip, mask, interfaceName)
     
 
-    def enableNetflow(self, bridgeName: str, destIp: str, destPort: int, activeTimeout=60)  -> None:
+    def enableNetflow(self, destIp: str, destPort: int, activeTimeout=60)  -> None:
         try:
-            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl -- set Bridge {bridgeName} netflow=@nf --  --id=@nf create  NetFlow  targets=\\\"{destIp}:{destPort}\\\"  active-timeout={activeTimeout}", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} ovs-vsctl -- set Bridge {self.getNodeName()} netflow=@nf --  --id=@nf create  NetFlow  targets=\\\"{destIp}:{destPort}\\\"  active-timeout={activeTimeout}", shell=True)
         except Exception as ex:
             logging.error(f"Error setting Netflow on {self.getNodeName()} switch: {str(ex)}")
             raise Exception(f"Error setting Netflow on {self.getNodeName()} switch: {str(ex)}")
@@ -145,20 +136,22 @@ class Switch(Node):
 
     # Brief: Set up the tshark to sniff all the packets into pcap files
     # Params:
-    #   List<str> interfaceNames: Name of interfaces to sniff packets
-    #   str path: Path to where the file will be placed
+    #   List<Node> nodes: References of the nodes connected to this switch to sniff packets
+    #   boolean sniffAll: If sniff all is set  
     # Return:
-    def collectPackets(self, interfaceNames=[], path='', rotateInterval=60) -> None:
-        if ".pcap" not in path:
-            raise Exception("Path should contain the file name and extension .pcap")
+    def collectFlows(self, nodes=[], path='', rotateInterval=60, sniffAll=False) -> None:
         try:
-            interfaces = interfaceNames
-            if len(interfaceNames) == 0:
-                interfaces = self._Node__getAllInterfaces()
+            interfaces = self._Node__getAllIntefaces()
+            if sniffAll == False:
+                if len(nodes) > 0: 
+                    interfaces = [self._Node__getThisInterfaceName(node) for node in nodes]
+                    interfaces.append(self.getNodeName())
+                else:
+                    raise Exception(f"Expected at least one node reference to sniff packets on {self.getNodeName()} switch")
             interfaces = list(set(interfaces) - set(['lo', 'ovs-system']))
-            options = ['-i ' + interface for interface in interfaces]
+            options = ['-i '+interface for interface in interfaces]
             options = ' '.join(options)
-            subprocess.run(f"docker exec {self.getNodeName()} tshark {options} -b duration:{rotateInterval} -w {path} > /dev/null 2>&1 &", shell=True)
+            subprocess.run(f"docker exec {self.getNodeName()} tshark {options} -b duration:{rotateInterval} -w {path}/dump.pcap > /dev/null 2>&1 &", shell=True)
         except Exception as ex:
             logging.error(f"Error set the collector on {self.getNodeName()}: {str(ex)}")
             raise Exception(f"Error set the collector on {self.getNodeName()}: {str(ex)}")

@@ -41,11 +41,11 @@ class CICFlowMeter(Node):
         if self.__mount: mount = f'-v {self.__hostPath}:{self.__containerPath}'
         super().instantiate(dockerCommand=f"docker run -d --network=none --privileged {mount} --name={self.getNodeName()} {image}")
         
-    # Brief: Convert pcaps into csv of flows
+    # Brief: Set up the tshark to sniff all the packets into pcap files
     # Params:
-    #   pcapPath: Container path that contains all the pcap files
-    #   destPath: 
+    #   List<Node> nodes: References of the nodes connected to this switch to sniff packets
+    #   boolean sniffAll: If sniff all is set  
     # Return:
-    def convertPcapIntoFlows(self, pcapPath: str, destPath) -> None:
+    def analyze(self, pcapPath: str, destPath) -> None:
         self.run(f'./TCPDUMP_and_CICFlowMeter-master/convert_pcap_csv.sh {pcapPath}')
         self.run('find /TCPDUMP_and_CICFlowMeter-master/csv -type f -exec mv {}' + f' {destPath} \\;')

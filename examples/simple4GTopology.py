@@ -13,9 +13,9 @@ class EmuEmuWireless:
         self.ue = UE('ue')
 
     def setup(self):
-        self.epc.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
-        self.enb.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE)
-        self.ue.instantiate(dockerImage=SRSRAN_PERFSONAR_UHD_IMAGE, runCommand=USR_SBIN_INIT_COMMAND)
+        self.epc.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction", runCommand=USR_SBIN_INIT_COMMAND)
+        self.enb.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction")
+        self.ue.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction", runCommand=USR_SBIN_INIT_COMMAND)
 
         self.enb.connect(self.epc, "enbepc", "epcenb")
         self.ue.connect(self.enb, "ueenb", "enbue")
@@ -48,15 +48,17 @@ class EmuEmuWireless:
 
         # Define UE Config
         self.ue.setUEID("001010123456780")
-        self.ue.setCorrectSyncError(True)
+        self.ue.setCorrectSyncError(False)
 
         self.epc.start()
-        self.enb.starGnuRadioSingleUE()
+        time.sleep(5)
+        self.enb.run(f"tail -f /dev/null | python3 {self.enb.defaultSingleUEPath} > /srsRAN/build/gnuradio.log 2>&1 &")
+        time.sleep(3)
         self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
         time.sleep(5)
 
-        self.ue.start("--rf.device_name=zmq --rf.device_args=\"tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=11.52e6\"")
-
+        self.ue.start('--rf.device_name=zmq --rf.device_args="tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=11.52e6"')
+        time.sleep(3)
         self.ue.setHost(EMU_EMU_WIRELESS_UE_IP_ADDR)
         self.epc.setHost(EMU_EMU_WIRELESS_EPC_IP_ADDR)
 
@@ -77,5 +79,4 @@ class EmuEmuWireless:
         self.epc.delete()
         self.enb.delete()
         self.ue.delete()
-
-EmuEmuWireless().setup
+EmuEmuWireless().setup()

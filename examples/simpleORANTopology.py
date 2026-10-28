@@ -64,15 +64,15 @@ class EmuEmuWireless:
         self.ue.setCorrectSyncError(False)
 
         self.epc.start()
-        time.sleep(5)
+        time.sleep(6)
 
         self.ric.start()
-        time.sleep(10)
+        time.sleep(13)
 
         self.enb.run(f"tail -f /dev/null | python3 {self.enb.defaultSingleUEPath} > /srsRAN/build/gnuradio.log 2>&1 &")
-        time.sleep(10)
+        time.sleep(6)
         self.enb.start("11.0.0.1", 2101, "11.0.0.1", 2100)
-        time.sleep(15)
+        time.sleep(8)
 
         self.ue.start('--rf.device_name=zmq --rf.device_args="tx_port=tcp://11.0.0.2:2001,rx_port=tcp://11.0.0.1:2000,id=ue,base_srate=11.52e6"')
         time.sleep(5)

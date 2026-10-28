@@ -15,9 +15,9 @@ class EmuEmuWireless:
         self.ric = NearRTRIC('ric')
 
     def setup(self):
-        self.epc.instantiate(dockerImage="pekrio/lft:srsran", runCommand=USR_SBIN_INIT_COMMAND)
-        self.enb.instantiate(dockerImage="pekrio/lft:srsran")
-        self.ue.instantiate(dockerImage="pekrio/lft:srsran", runCommand=USR_SBIN_INIT_COMMAND)
+        self.epc.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction", runCommand=USR_SBIN_INIT_COMMAND)
+        self.enb.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction")
+        self.ue.instantiate(dockerImage="pekrio/perfsonar_srsran:noillegalinstruction", runCommand=USR_SBIN_INIT_COMMAND)
         self.ric.instantiate(dockerImage="pekrio/lft:nearrtric")
 
         self.enb.connect(self.epc, "enbepc", "epcenb")
